@@ -45,7 +45,7 @@ def process_image(image):
     return image
 
 def predict(image_path, model, topk=3, gpu='gpu'):
-    ''' Predict the class (or classes) of an image using a trained deep learning model.
+    ''' Get probability values (indeces) and respective flower classes. 
     '''
     
     # TODO: Implement the code to predict the class from an image file
@@ -67,7 +67,12 @@ def predict(image_path, model, topk=3, gpu='gpu'):
         
     probability = F.softmax(output.data,dim=1) # use F 
     
-    return probability.topk(topk)
+    probs = np.array(probability.topk(topk)[0][0])
+    
+    index_to_class = {val: key for key, val in model.class_to_idx.items()} # from reviewer advice
+    top_classes = [np.int(index_to_class[each]) for each in np.array(probability.topk(topk)[1][0])]
+    
+    return probs, top_classes
 
 def main(): 
     args = parse_args()
@@ -76,9 +81,9 @@ def main():
     cat_to_name = load_cat_names(args.category_names)
     
     img_path = args.filepath
-    probabilities = predict(img_path, model, int(args.top_k), gpu)
-    labels = [cat_to_name[str(index + 1)] for index in np.array(probabilities[1][0])]
-    probability = np.array(probabilities[0][0])
+    probs, classes = predict(img_path, model, int(args.top_k), gpu)
+    labels = [cat_to_name[str(index)] for index in classes]
+    probability = probs
     print('File selected: ' + img_path)
     
     print(labels)
